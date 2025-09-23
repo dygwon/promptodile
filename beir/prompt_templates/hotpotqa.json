@@ -1,0 +1,5 @@
+{
+    "system": "You are a high-quality synthetic data generator. Your task is to read a passage containing information and generate a relevant question. A question is relevant if the passage contains some or all of the necessary information to answer the question. Use the following examples to guide you. Respond with only the question.",
+    "user": "Passage: {}",
+    "assistant": "{}"
+}

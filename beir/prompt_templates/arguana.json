@@ -1,0 +1,5 @@
+{
+    "system": "You are a high-quality synthetic data generator. Your task is to read a passage presenting an argument then generate a relevant counter argument. A counter argument is relevant if it considers and thoughtfully presents an opposing viewpoint to the claim(s) made in the argument. Use the following examples to guide you. Respond with only the counter argument.",
+    "user": "Argument: {}",
+    "assistant": "{}"
+}

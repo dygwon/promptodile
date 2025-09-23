@@ -1,0 +1,23 @@
+{
+    "model": "/PATH/TO/RETRIEVAL-MODEL",
+    "test_size": 0.1,
+    "mini_batch_size": 16,
+    "similarity_function": "cos",
+    "early_stopping_callback_args": {
+        "early_stopping_patience": 3
+    },
+    "training_args": {
+        "output_dir": "overwritten by ft_model_dir in shared.json",
+        "num_train_epochs": 30,
+        "per_device_train_batch_size": 128,
+        "learning_rate": 0.00002,
+        "warmup_ratio": 0.1,
+        "fp16": true,
+        "batch_sampler": "no_duplicates",
+        "metric_for_best_model": "eval_loss",
+        "eval_strategy": "epoch",
+        "save_strategy": "epoch",
+        "logging_strategy": "epoch",
+        "load_best_model_at_end": true
+    }
+}

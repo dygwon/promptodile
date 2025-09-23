@@ -1,0 +1,1 @@
+These files are legacy and incompatible with the codebase in the existing state. These files are kept to document the prompts used to generate synthetic queries for various BEIR datasets.

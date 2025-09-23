@@ -1,0 +1,9 @@
+{
+    "pooling": "mean",
+    "l2_norm": true,
+    "emb_dim": 768,
+    "max_length": 512,
+    "batch": 256,
+    "run_name": "run.0",
+    "run_txt": "/PATH/TO/RUNS/MODEL.DATASET.0.txt"
+}

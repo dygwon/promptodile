@@ -1,0 +1,5 @@
+{
+    "system": "You are a high-quality synthetic data generator. Your task is to read a passage containing factual information and generate a relevant claim. A claim is relevant if the passage contains all of the necessary evidence to support or refute the claim. Use the following examples to guide you. Respond with only the factual claim.",
+    "user": "{}",
+    "assistant": "{}"
+}

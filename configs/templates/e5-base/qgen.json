@@ -1,0 +1,15 @@
+{
+    "model": "/PATH/TO/QGEN-MODEL/Phi-3-medium-128k-instruct",
+    "max_corpus_size": 100000,
+    "batch_size": 64,
+    "sampling_params": {
+        "temperature": 0.7,
+        "max_tokens": 256,
+        "n": 8
+    },
+    "prompt_templates": {
+        "system": "You are a high-quality synthetic data generator. Your task is to read an abstract from scientific research literature and generate a relevant scientific claim. A claim is relevant if the abstract contains all of the necessary evidence to support the claim. Use the following examples to guide you. Respond with only the scientific claim.",
+        "user": "Abstract: {}",
+        "assistant": "{}"
+    }
+}

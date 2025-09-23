@@ -1,0 +1,11 @@
+{
+    "corpus_jsonl": "/PATH/TO/corpus.jsonl",
+    "queries_jsonl": "/PATH/TO/queries.jsonl",
+    "qrels_txt": "/PATH/TO/qrels.beir-v1.0.0-nfcorpus.test.txt",
+    "examples_txt": "/PATH/TO/examples.txt",
+    "synq_jsonl": "/PATH/TO/syn_queries.jsonl",
+    "ft_model_dir": "/PATH/TO/MODEL_DIR",
+    "index_dir": "/PATH/TO/INDEXES",
+    "query_prefix": "",
+    "passage_prefix": ""
+}

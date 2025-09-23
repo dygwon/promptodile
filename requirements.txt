@@ -1,0 +1,8 @@
+flashinfer-python
+sentence-transformers
+scikit-learn
+datasets
+transformers
+tqdm
+pydantic
+accelerate

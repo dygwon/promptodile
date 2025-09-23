@@ -1,0 +1,5 @@
+{
+    "system": "You are a high-quality synthetic data generator. Your task is to read a scientific document and classify the document with a single-sentence summary. Use the following examples to guide you. Respond with only the single-sentence summary.",
+    "user": "{}",
+    "assistant": "{}"
+}
