@@ -73,3 +73,4 @@ def beir_qrels_to_trec(beir_tsv: str, trec_txt: str) -> None:
         for row in data:
             # Each row is [query-id, corpus-id, score]
             fout.write(f'{row[0]} 0 {row[1]} {row[2]}')
+            fout.write('\n')
