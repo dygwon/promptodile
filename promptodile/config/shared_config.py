@@ -10,7 +10,7 @@ Delivered to the U.S. Government with Unlimited Rights, as defined in DFARS Part
 
 from pathlib import Path
 from typing import Optional
-from pydantic import BaseModel, field_validator, ValidationError
+from pydantic import BaseModel, field_validator, ValidationError, Field
 from promptodile.config import constants
 
 
@@ -22,6 +22,7 @@ class SharedConfig(BaseModel):
     synq_jsonl: Optional[Path]
     ft_model_dir: Optional[Path]
     index_dir: Optional[Path]
+    exclude_strs: list[str] = Field(default_factory=list[str])
     query_prefix: str = constants.QUERY_PREFIX
     passage_prefix: str = constants.PASSAGE_PREFIX
 

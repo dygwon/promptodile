@@ -35,7 +35,7 @@ class Data:
         self._queries = None
         self._few_shot = None
         self._num_few_shot = 0
-        self._syn_queries_flat: list[SQuery] | None = None
+        self._synq_flat: list[SQuery] | None = None
 
         if self._config.corpus_jsonl:
             self._corpus = self._load_corpus()
@@ -62,7 +62,7 @@ class Data:
 
     @property
     def syn_queries(self) -> list[Queries] | None:
-        return self._syn_queries_flat
+        return self._synq_flat
 
     def _load_corpus(self) -> Corpus | None:
         logger.info('Loading corpus')
@@ -129,8 +129,6 @@ class Data:
             raise AttributeError(
                 'Please provide a synthetic queries jsonl file.'
             )
-        elif self._syn_queries_flat:
-            logger.info('overwriting %s', self._syn_queries_flat)
         synq_jsonl = Path(self._config.synq_jsonl)
 
         if exclude_strs:
@@ -168,12 +166,15 @@ class Data:
             parent = synq_jsonl.parent
             new_stem = f'{synq_jsonl.stem}_flat'
             suffix = synq_jsonl.suffix
-            synq_out_jsonl = parent / (new_stem + suffix)
-            logger.info('writing flattened file to %s', synq_out_jsonl)
-            with open(synq_out_jsonl, mode='w', encoding='utf-8') as fout:
+            synq_flat_jsonl = parent / (new_stem + suffix)
+            if synq_flat_jsonl.exists():
+                logger.info('overwriting %s', synq_flat_jsonl)
+            else:
+                logger.info('writing to %s', synq_flat_jsonl)
+            with open(synq_flat_jsonl, mode='w', encoding='utf-8') as fout:
                 for line_dict in flattened:
                     json.dump(line_dict, fout)
                     fout.write('\n')
 
-        self._syn_queries_flat = flattened
+        self._synq_flat = flattened
         return flattened
