@@ -8,9 +8,13 @@ The software/firmware is provided to you on an As-Is basis
 Delivered to the U.S. Government with Unlimited Rights, as defined in DFARS Part 252.227-7013 or 7014 (Feb 2014). Notwithstanding any copyright notice, U.S. Government rights in this work are defined by DFARS 252.227-7013 or DFARS 252.227-7014 as detailed above. Use of this work other than as specifically authorized by the U.S. Government may violate any copyrights that exist in this work.
 """
 
+import logging
 import json
-from typing import TypeAlias
+from typing import TypeAlias, Iterable
+from pathlib import Path
 from promptodile.config import shared_config
+
+logger = logging.getLogger(__name__)
 
 
 Corpus: TypeAlias = dict[str, dict[str, str]]
@@ -21,14 +25,15 @@ Queries: TypeAlias = dict[str, str]
 class Data:
     def __init__(self, config: shared_config.SharedConfig):
         self._config = config
-        print(f'Corpus: {self._config.corpus_jsonl}')
-        print(f'Queries: {self._config.queries_jsonl}')
-        print(f'Few-shot Examples: {self._config.examples_txt}')
+        logger.info('Corpus: %s', self._config.corpus_jsonl)
+        logger.info('Queries: %s', self._config.queries_jsonl)
+        logger.info('Few-shot Examples: %s', self._config.examples_txt)
 
         self._corpus = None
         self._queries = None
         self._few_shot = None
         self._num_few_shot = 0
+        self._syn_queries = None
 
         if self._config.corpus_jsonl:
             self._corpus = self._load_corpus()
@@ -53,8 +58,12 @@ class Data:
     def few_shot(self) -> FewShot | None:
         return self._few_shot
 
+    @property
+    def syn_queries(self) -> list[Queries] | None:
+        return self._syn_queries
+
     def _load_corpus(self) -> Corpus | None:
-        print('Loading corpus')
+        logger.info('Loading corpus')
 
         corpus: Corpus = {}
         corpus_jsonl = self._config.corpus_jsonl
@@ -67,12 +76,12 @@ class Data:
                     'title': line_dict.get('title', ''),
                     'body': line_dict['body'],
                 }
-        print(f'Loaded {len(corpus)} documents.')
+        logger.info('Loaded %d documents.', len(corpus))
 
         return corpus
 
     def _load_queries(self) -> Queries | None:
-        print('Loading queries...')
+        logger.info('Loading queries...')
 
         queries: Queries = {}
         queries_jsonl = self._config.queries_jsonl
@@ -83,12 +92,12 @@ class Data:
                 line_dict = json.loads(line)
                 qid = str(line_dict['id'])
                 queries[qid] = line_dict['narrative']
-        print(f'Loaded {len(queries)} queries.')
+        logger.info('Loaded %d queries.', len(queries))
 
         return queries
 
     def _load_few_shot(self) -> FewShot | None:
-        print('Loading few-shot examples.')
+        logger.info('Loading few-shot examples.')
 
         few_shot: FewShot = {}
         examples_txt = self._config.examples_txt
@@ -101,3 +110,63 @@ class Data:
                 self._num_few_shot += 1
 
         return few_shot
+
+    def flatten_and_process_syn_queries(
+        self,
+        synq_in_jsonl: str | Path,
+        exclude_strs: Iterable[str] | None = None,
+        synq_out_jsonl: str | Path | None = None,
+    ) -> None:
+        """Flattens the syn_queries.jsonl file so that each line contains one
+        synthetic query.
+
+        The new synthetic query is a string with a key value of \"query\"
+
+        We remove leading and trailing whitespace from each included query, if there
+        if any."""
+        synq_in_jsonl = Path(synq_in_jsonl)
+
+        if synq_out_jsonl:
+            synq_out_jsonl = Path(synq_out_jsonl)
+        else:
+            # Create a new file with "_flat" appended to it if we weren't given a
+            # new file to write to.
+            parent = synq_in_jsonl.parent
+            new_stem = f'{synq_in_jsonl.stem}_flat'
+            suffix = synq_in_jsonl.suffix
+            synq_out_jsonl = parent / (new_stem + suffix)
+            logger.info('writing flattened file to %s', synq_out_jsonl)
+
+        if exclude_strs:
+            exclude_strs = set(estr.strip().lower() for estr in exclude_strs)
+        else:
+            exclude_strs = set()
+
+        flattened: list[dict[str, str]] = []
+        total_queries = 0
+        num_removed = 0
+        with open(synq_in_jsonl, mode='r', encoding='utf-8') as fin:
+            for line in fin:
+                line_dict = json.loads(line)
+                queries: list[str] = line_dict['queries']
+                total_queries += len(queries)
+                for query in queries:
+                    query = query.strip()
+                    # Skip empty strings or ones that we identify as skippable. If
+                    # all queries for the document are skipped, the document is
+                    # excluded from the flattened file.
+                    if not query or query.lower() in exclude_strs:
+                        num_removed += 1
+                        continue
+
+                    new_dict: dict[str, str] = {}
+                    new_dict['docid'] = line_dict['docid']
+                    new_dict['query'] = query
+                    flattened.append(new_dict)
+
+        logger.info('Total queries in file: %d', total_queries)
+        logger.info('Queries removed: %d', num_removed)
+        with open(synq_out_jsonl, mode='w', encoding='utf-8') as fout:
+            for line_dict in flattened:
+                json.dump(line_dict, fout)
+                fout.write('\n')
