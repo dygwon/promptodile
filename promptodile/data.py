@@ -20,6 +20,7 @@ logger = logging.getLogger(__name__)
 Corpus: TypeAlias = dict[str, dict[str, str]]
 FewShot: TypeAlias = dict[str, dict[str, int]]
 Queries: TypeAlias = dict[str, str]
+SQuery: TypeAlias = dict[str, str]
 
 
 class Data:
@@ -28,12 +29,13 @@ class Data:
         logger.info('Corpus: %s', self._config.corpus_jsonl)
         logger.info('Queries: %s', self._config.queries_jsonl)
         logger.info('Few-shot Examples: %s', self._config.examples_txt)
+        logger.info('Synthetic Queries: %s', self._config.synq_jsonl)
 
         self._corpus = None
         self._queries = None
         self._few_shot = None
         self._num_few_shot = 0
-        self._syn_queries = None
+        self._syn_queries_flat: list[SQuery] | None = None
 
         if self._config.corpus_jsonl:
             self._corpus = self._load_corpus()
@@ -60,7 +62,7 @@ class Data:
 
     @property
     def syn_queries(self) -> list[Queries] | None:
-        return self._syn_queries
+        return self._syn_queries_flat
 
     def _load_corpus(self) -> Corpus | None:
         logger.info('Loading corpus')
@@ -113,60 +115,65 @@ class Data:
 
     def flatten_and_process_syn_queries(
         self,
-        synq_in_jsonl: str | Path,
+        save_flat_file: bool = True,
         exclude_strs: Iterable[str] | None = None,
-        synq_out_jsonl: str | Path | None = None,
-    ) -> None:
+    ) -> list[SQuery]:
         """Flattens the syn_queries.jsonl file so that each line contains one
         synthetic query.
 
         The new synthetic query is a string with a key value of \"query\"
 
-        We remove leading and trailing whitespace from each included query, if there
-        if any."""
-        synq_in_jsonl = Path(synq_in_jsonl)
-
-        if synq_out_jsonl:
-            synq_out_jsonl = Path(synq_out_jsonl)
-        else:
-            # Create a new file with "_flat" appended to it if we weren't given a
-            # new file to write to.
-            parent = synq_in_jsonl.parent
-            new_stem = f'{synq_in_jsonl.stem}_flat'
-            suffix = synq_in_jsonl.suffix
-            synq_out_jsonl = parent / (new_stem + suffix)
-            logger.info('writing flattened file to %s', synq_out_jsonl)
+        We remove leading and trailing whitespace from each included query, if
+        there if any."""
+        if self._config.synq_jsonl is None:
+            raise AttributeError(
+                'Please provide a synthetic queries jsonl file.'
+            )
+        elif self._syn_queries_flat:
+            logger.info('overwriting %s', self._syn_queries_flat)
+        synq_jsonl = Path(self._config.synq_jsonl)
 
         if exclude_strs:
             exclude_strs = set(estr.strip().lower() for estr in exclude_strs)
         else:
             exclude_strs = set()
 
-        flattened: list[dict[str, str]] = []
+        flattened: list[SQuery] = []
         total_queries = 0
         num_removed = 0
-        with open(synq_in_jsonl, mode='r', encoding='utf-8') as fin:
+        with open(synq_jsonl, mode='r', encoding='utf-8') as fin:
             for line in fin:
                 line_dict = json.loads(line)
                 queries: list[str] = line_dict['queries']
                 total_queries += len(queries)
                 for query in queries:
                     query = query.strip()
-                    # Skip empty strings or ones that we identify as skippable. If
-                    # all queries for the document are skipped, the document is
-                    # excluded from the flattened file.
+                    # Skip empty strings or ones that we identify as skippable.
+                    # If all queries for the document are skipped, the document
+                    # is excluded from the flattened file.
                     if not query or query.lower() in exclude_strs:
                         num_removed += 1
                         continue
 
-                    new_dict: dict[str, str] = {}
+                    new_dict: SQuery = {}
                     new_dict['docid'] = line_dict['docid']
                     new_dict['query'] = query
                     flattened.append(new_dict)
 
         logger.info('Total queries in file: %d', total_queries)
         logger.info('Queries removed: %d', num_removed)
-        with open(synq_out_jsonl, mode='w', encoding='utf-8') as fout:
-            for line_dict in flattened:
-                json.dump(line_dict, fout)
-                fout.write('\n')
+
+        if save_flat_file:
+            # Create a new flattened file.
+            parent = synq_jsonl.parent
+            new_stem = f'{synq_jsonl.stem}_flat'
+            suffix = synq_jsonl.suffix
+            synq_out_jsonl = parent / (new_stem + suffix)
+            logger.info('writing flattened file to %s', synq_out_jsonl)
+            with open(synq_out_jsonl, mode='w', encoding='utf-8') as fout:
+                for line_dict in flattened:
+                    json.dump(line_dict, fout)
+                    fout.write('\n')
+
+        self._syn_queries_flat = flattened
+        return flattened

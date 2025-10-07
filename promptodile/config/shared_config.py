@@ -24,9 +24,10 @@ class SharedConfig(BaseModel):
     index_dir: Optional[Path]
     query_prefix: str = constants.QUERY_PREFIX
     passage_prefix: str = constants.PASSAGE_PREFIX
-    
+
     @field_validator(
-        'corpus_jsonl', 'queries_jsonl', 'qrels_txt', 'examples_txt')
+        'corpus_jsonl', 'queries_jsonl', 'qrels_txt', 'examples_txt'
+    )
     @classmethod
     def validate_file(cls, v: Optional[Path]):
         if v is None:
@@ -34,4 +35,3 @@ class SharedConfig(BaseModel):
         elif not v.is_file():
             raise ValidationError(f'Not a valid file: {v}')
         return v
-    

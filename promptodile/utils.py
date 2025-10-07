@@ -10,8 +10,7 @@ Delivered to the U.S. Government with Unlimited Rights, as defined in DFARS Part
 
 import json
 import logging
-from pathlib import Path
-from typing import TypeVar, Type, Iterable
+from typing import TypeVar, Type
 
 logger = logging.getLogger(__name__)
 
