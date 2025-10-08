@@ -113,6 +113,20 @@ class Data:
 
         return few_shot
 
+    @staticmethod
+    def _name_new_file(file: str | Path, ending: str) -> Path:
+        """Create a new file from a given one with the ending.
+
+        E.g.,
+            file = /path/to/file.txt
+            ending = 'flat' --> /path/to/file_flat.txt
+        """
+        file = Path(file)
+        parent = file.parent
+        new_stem = f'{file.stem}_{ending}'
+        suffix = file.suffix
+        return parent / (new_stem + suffix)
+
     def flatten_and_process_syn_queries(
         self,
         save_flat_file: bool = True,
@@ -130,21 +144,16 @@ class Data:
                 'Please provide a synthetic queries jsonl file.'
             )
         synq_jsonl = Path(self._config.synq_jsonl)
-
-        if exclude_strs:
-            exclude_strs = set(estr.strip().lower() for estr in exclude_strs)
-        else:
-            exclude_strs = set()
+        exclude_strs = set(exclude_strs) if exclude_strs else set()
 
         flattened: list[SQuery] = []
-        total_queries = 0
-        num_removed = 0
+        total_queries, num_removed = 0, 0
         with open(synq_jsonl, mode='r', encoding='utf-8') as fin:
             for line in fin:
                 line_dict = json.loads(line)
                 queries: list[str] = line_dict['queries']
                 total_queries += len(queries)
-                for query in queries:
+                for i, query in enumerate(queries):
                     query = query.strip()
                     # Skip empty strings or ones that we identify as skippable.
                     # If all queries for the document are skipped, the document
@@ -154,7 +163,9 @@ class Data:
                         continue
 
                     new_dict: SQuery = {}
-                    new_dict['docid'] = line_dict['docid']
+                    docid = line_dict['docid']
+                    new_dict['qid'] = docid + '_' + str(i)
+                    new_dict['docid'] = docid
                     new_dict['query'] = query
                     flattened.append(new_dict)
 
@@ -163,14 +174,13 @@ class Data:
 
         if save_flat_file:
             # Create a new flattened file.
-            parent = synq_jsonl.parent
-            new_stem = f'{synq_jsonl.stem}_flat'
-            suffix = synq_jsonl.suffix
-            synq_flat_jsonl = parent / (new_stem + suffix)
-            if synq_flat_jsonl.exists():
-                logger.info('overwriting %s', synq_flat_jsonl)
-            else:
-                logger.info('writing to %s', synq_flat_jsonl)
+            synq_flat_jsonl = self._name_new_file(synq_jsonl, 'flat')
+            lstr = (
+                'overwriting %s'
+                if synq_flat_jsonl.exists()
+                else 'writing to %s'
+            )
+            logger.info(lstr, synq_flat_jsonl)
             with open(synq_flat_jsonl, mode='w', encoding='utf-8') as fout:
                 for line_dict in flattened:
                     json.dump(line_dict, fout)
