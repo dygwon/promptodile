@@ -114,7 +114,7 @@ class Data:
         return few_shot
 
     @staticmethod
-    def _name_new_file(file: str | Path, ending: str) -> Path:
+    def name_new_file(file: str | Path, ending: str) -> Path:
         """Create a new file from a given one with the ending.
 
         E.g.,
@@ -174,7 +174,7 @@ class Data:
 
         if save_flat_file:
             # Create a new flattened file.
-            synq_flat_jsonl = self._name_new_file(synq_jsonl, 'flat')
+            synq_flat_jsonl = self.name_new_file(synq_jsonl, 'flat')
             lstr = (
                 'overwriting %s'
                 if synq_flat_jsonl.exists()

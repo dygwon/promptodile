@@ -40,7 +40,10 @@ INDEX_BATCH = 16
 RUN_NAME = 'run'
 RUN_TXT = Path('run.txt')
 
+MILVUS_DB = './promptodile.db'
 VECTOR_FIELD_NAME = 'vector'
+SEARCH_K = 10
+CONSISTENCY_TOP_K = 3
 
 # -- Evaluate -------------------------------------------------------------
 K = 100
