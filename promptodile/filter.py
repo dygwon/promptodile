@@ -35,8 +35,10 @@ class Filter:
             exclude_strs=self._sconfig.exclude_strs
         )
         self._ret_jsonl = self._data.name_new_file(
-            self._synq_jsonl,
-            'retrieved',
+            self._synq_jsonl, 'retrieved'
+        )
+        self._filtered_jsonl = self._data.name_new_file(
+            self._synq_jsonl, 'filtered'
         )
 
         self._model = self._init_model()
@@ -166,16 +168,30 @@ class Filter:
 
             self._save_results_batch(qid_batch, source_docids_batch, results)
 
-    def _get_keepers(self, k: int = constants.CONSISTENCY_TOP_K) -> set[str]:
+    def _get_keepers(
+        self,
+        k: int = constants.CONSISTENCY_TOP_K,
+    ) -> dict[str, list[str]]:
         """Go through the jsonl of retrieved documents and only keep those where
-        the synthetic query's document is found in the top k."""
+        the synthetic query's document is found in the top k.
+
+        Resulting data structure is a dictionary mapping source document ids to
+        the list of queries. For example,
+
+        {
+            DOCID1: [query1, query2, query3, ...],
+            DOCID2: [query2, query4, query4, ...],
+            ...
+        }
+        """
         logger.info('reading %s', self._ret_jsonl)
         retrieved: list[dict[str, str | list[str]]] = []
         with open(self._ret_jsonl, mode='r', encoding='utf-8') as fin:
             for line in fin:
                 retrieved.append(json.loads(line))
 
-        qids_keep: set[str] = set()
+        num_keep = 0
+        docids_to_qids: dict[str, list[str]] = {}
         for line in retrieved:
             qid = line['qid']
             source_docid = line['source_docid']
@@ -191,31 +207,57 @@ class Filter:
                 continue
 
             if source_docid in topk:
-                qids_keep.add(qid)
+                docids_to_qids.setdefault(source_docid, []).append(qid)
+                num_keep += 1
 
         logger.info(
-            'keep %d/%d (%f%)',
-            len(qids_keep),
+            'keep %d/%d (%.1f%%)',
+            num_keep,
             len(retrieved),
-            round(len(qids_keep) / len(retrieved) * 100, 1),
+            round(num_keep / len(retrieved) * 100, 1),
         )
 
-        return qids_keep
+        return docids_to_qids
+
+    def _qids_to_queries(self) -> dict[str, str]:
+        """Create a simple mapping of query ids to query texts."""
+        qids_to_queries: dict[str, str] = {}
+        for line in self._synq_flat:
+            qid = line['qid']
+            query = line['query']
+            if qid in qids_to_queries:
+                logger.error('Duplicate query id found: %s', qid)
+                logger.error('Keeping the first text encountered.')
+                continue
+            qids_to_queries[qid] = query
+
+        return qids_to_queries
+
+    def _save_consistent(self, k: int = constants.CONSISTENCY_TOP_K) -> None:
+        logger.info('saving "consistent" queries')
+        if self._data.corpus is None:
+            raise AttributeError('Please provide a valid corpus file.')
+
+        docids_to_qids = self._get_keepers()
+        qids_to_query = self._qids_to_queries()
+
+        with open(self._filtered_jsonl, mode='w', encoding='utf-8') as fout:
+            for docid, qids in docids_to_qids.items():
+                output = {
+                    'docid': docid,
+                    'title': self._data.corpus[docid].get('title', ''),
+                    'body': self._data.corpus[docid]['body'],
+                    'queries': [qids_to_query[qid] for qid in qids],
+                }
+                json.dump(output, fout)
+                fout.write('\n')
 
     def consistency_filter(self):
         logger.info('conducting consistency filtering')
         self._create_collection()
         self.index()
         self.retrieve()
-
-        # TODO
-        # - unify dataset formatting, including methods to read and write to them
-        # - rewrite the synthetic queries jsonl file with just the qids to keep.
-        #   This should not be the flattened file, since the Train object assumes
-        #   it is not a flattened file (but think about whether this makes the most sense)
-        qids_keep = self._get_keepers()
-        for qid in qids_keep:
-            pass
+        self._save_consistent()
 
 
 if __name__ == '__main__':
@@ -239,4 +281,5 @@ if __name__ == '__main__':
 
     filter = Filter(config, sconfig)
     # filter.consistency_filter()
-    filter.retrieve()
+    # filter.retrieve()
+    filter._save_consistent()

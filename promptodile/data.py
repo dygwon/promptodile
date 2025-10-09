@@ -147,6 +147,18 @@ class Data:
         exclude_strs = set(exclude_strs) if exclude_strs else set()
 
         flattened: list[SQuery] = []
+
+        synq_flat_jsonl = self.name_new_file(synq_jsonl, 'flat')
+        # Read and return the file if it already exists.
+        if synq_flat_jsonl.exists():
+            logger.info('Returning existing flattened file %s', synq_flat_jsonl)
+            with open(synq_flat_jsonl, mode='r', encoding='utf-8') as fin:
+                for line in fin:
+                    flattened.append(json.loads(line))
+
+            self._synq_flat = flattened
+            return flattened
+
         total_queries, num_removed = 0, 0
         with open(synq_jsonl, mode='r', encoding='utf-8') as fin:
             for line in fin:
@@ -173,14 +185,7 @@ class Data:
         logger.info('Queries removed: %d', num_removed)
 
         if save_flat_file:
-            # Create a new flattened file.
-            synq_flat_jsonl = self.name_new_file(synq_jsonl, 'flat')
-            lstr = (
-                'overwriting %s'
-                if synq_flat_jsonl.exists()
-                else 'writing to %s'
-            )
-            logger.info(lstr, synq_flat_jsonl)
+            logger.info('writing to %s', synq_flat_jsonl)
             with open(synq_flat_jsonl, mode='w', encoding='utf-8') as fout:
                 for line_dict in flattened:
                     json.dump(line_dict, fout)
