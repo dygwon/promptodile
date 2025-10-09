@@ -1,6 +1,7 @@
 import json
 import logging
 import numpy as np
+from pathlib import Path
 from promptodile.config import shared_config, filter_config
 from promptodile import data
 from pymilvus import MilvusClient
@@ -43,8 +44,9 @@ class Filter:
 
         self._model = self._init_model()
 
-        logger.info(f'using milvus lite database: {constants.MILVUS_DB}')
-        self._client = MilvusClient(constants.MILVUS_DB)
+        self._db_path = Path(self._config.db_dir) / constants.MILVUS_DB
+        logger.info(f'using milvus lite database: {self._db_path}')
+        self._client = MilvusClient(str(self._db_path))
 
     def _init_model(self) -> SentenceTransformer:
         return SentenceTransformer(self._config.model)
@@ -254,8 +256,8 @@ class Filter:
 
     def consistency_filter(self):
         logger.info('conducting consistency filtering')
-        self._create_collection()
-        self.index()
+        # self._create_collection()
+        # self.index()
         self.retrieve()
         self._save_consistent()
 
@@ -280,6 +282,4 @@ if __name__ == '__main__':
     )
 
     filter = Filter(config, sconfig)
-    # filter.consistency_filter()
-    # filter.retrieve()
-    filter._save_consistent()
+    filter.consistency_filter()
