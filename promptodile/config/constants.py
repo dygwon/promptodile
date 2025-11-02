@@ -20,9 +20,9 @@ FT_MODEL_DIR = 'promptodile_model'
 
 # -- QGen ---------------------------------------------------------------------
 OUTPUT_FILE = 'syn_queries.jsonl'
-DEFAULT_SYSTEM = "You are a high-quality synthetic data generator. Your task is to read a document and generate a relevant query. A query is relevant if the document contains all of the necessary information to answer the query. Use the following examples to guide you. Respond with only the query."
-DEFAULT_USER = "Document: {}"
-DEFAULT_ASSISTANT = ""
+DEFAULT_SYSTEM = 'You are a high-quality synthetic data generator. Your task is to read a document and generate a relevant query. A query is relevant if the document contains all of the necessary information to answer the query. Use the following examples to guide you. Respond with only the query.'
+DEFAULT_USER = 'Document: {}'
+DEFAULT_ASSISTANT = ''
 QGEN_BATCH = 256
 
 # -- Train --------------------------------------------------------------------
@@ -39,6 +39,11 @@ MAX_LENGTH = 512
 INDEX_BATCH = 16
 RUN_NAME = 'run'
 RUN_TXT = Path('run.txt')
+
+MILVUS_DB = './promptodile.db'
+VECTOR_FIELD_NAME = 'vector'
+SEARCH_K = 10
+CONSISTENCY_TOP_K = 3
 
 # -- Evaluate -------------------------------------------------------------
 K = 100

@@ -18,6 +18,7 @@ logger = logging.getLogger(__name__)
 
 T = TypeVar('T')
 
+
 def load_configs_from_json(
     json_path: str,
     config_class: Type[T],
@@ -35,12 +36,14 @@ def beir_corpus_to_trec(beir_jsonl: str, trec_jsonl: str) -> None:
     with open(beir_jsonl, mode='r', encoding='utf-8') as fin:
         for line in fin:
             line_dict = json.loads(line)
-            data.append({
-                'docid': line_dict['_id'],
-                'title': line_dict.get('title', ''),
-                'body': line_dict['text']
-            })
-    
+            data.append(
+                {
+                    'docid': line_dict['_id'],
+                    'title': line_dict.get('title', ''),
+                    'body': line_dict['text'],
+                }
+            )
+
     with open(trec_jsonl, mode='w', encoding='utf-8') as fout:
         for line in data:
             json.dump(line, fout)
@@ -52,11 +55,10 @@ def beir_queries_to_trec(beir_jsonl: str, trec_jsonl: str) -> None:
     with open(beir_jsonl, mode='r', encoding='utf-8') as fin:
         for line in fin:
             line_dict = json.loads(line)
-            data.append({
-                'id': line_dict['_id'],
-                'narrative': line_dict['text']
-            })
-    
+            data.append(
+                {'id': line_dict['_id'], 'narrative': line_dict['text']}
+            )
+
     with open(trec_jsonl, mode='w', encoding='utf-8') as fout:
         for line in data:
             json.dump(line, fout)
