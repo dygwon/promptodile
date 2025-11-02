@@ -8,6 +8,7 @@ The software/firmware is provided to you on an As-Is basis
 Delivered to the U.S. Government with Unlimited Rights, as defined in DFARS Part 252.227-7013 or 7014 (Feb 2014). Notwithstanding any copyright notice, U.S. Government rights in this work are defined by DFARS 252.227-7013 or DFARS 252.227-7014 as detailed above. Use of this work other than as specifically authorized by the U.S. Government may violate any copyrights that exist in this work.
 """
 
+import csv
 import json
 import logging
 from typing import TypeVar, Type
@@ -16,6 +17,7 @@ logger = logging.getLogger(__name__)
 
 
 T = TypeVar('T')
+
 
 def load_configs_from_json(
     json_path: str,
@@ -34,12 +36,14 @@ def beir_corpus_to_trec(beir_jsonl: str, trec_jsonl: str) -> None:
     with open(beir_jsonl, mode='r', encoding='utf-8') as fin:
         for line in fin:
             line_dict = json.loads(line)
-            data.append({
-                'docid': line_dict['_id'],
-                'title': line_dict.get('title', ''),
-                'body': line_dict['text']
-            })
-    
+            data.append(
+                {
+                    'docid': line_dict['_id'],
+                    'title': line_dict.get('title', ''),
+                    'body': line_dict['text'],
+                }
+            )
+
     with open(trec_jsonl, mode='w', encoding='utf-8') as fout:
         for line in data:
             json.dump(line, fout)
@@ -51,12 +55,24 @@ def beir_queries_to_trec(beir_jsonl: str, trec_jsonl: str) -> None:
     with open(beir_jsonl, mode='r', encoding='utf-8') as fin:
         for line in fin:
             line_dict = json.loads(line)
-            data.append({
-                'id': line_dict['_id'],
-                'narrative': line_dict['text']
-            })
-    
+            data.append(
+                {'id': line_dict['_id'], 'narrative': line_dict['text']}
+            )
+
     with open(trec_jsonl, mode='w', encoding='utf-8') as fout:
         for line in data:
             json.dump(line, fout)
+            fout.write('\n')
+
+def beir_qrels_to_trec(beir_tsv: str, trec_txt: str) -> None:
+    data: list[list[str]] = []
+    with open(beir_tsv, mode='r', encoding='utf-8') as fin:
+        reader = csv.reader(fin, delimiter='\t')
+        for row in reader:
+            data.append(row)
+    
+    with open(trec_txt, mode='w', encoding='utf-8') as fout:
+        for row in data:
+            # Each row is [query-id, corpus-id, score]
+            fout.write(f'{row[0]} 0 {row[1]} {row[2]}')
             fout.write('\n')

@@ -26,6 +26,8 @@ from transformers.trainer_callback import EarlyStoppingCallback
 from promptodile.config.enums.similarity_function_enum import SimilarityFunctionEnum
 from promptodile.config import train_config, shared_config
 from promptodile.config import constants
+from promptodile import data
+from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
@@ -51,6 +53,11 @@ class Train:
         synq_jsonl = self._sconfig.synq_jsonl
         if synq_jsonl is None:
             raise AttributeError(f'Please provide a valid file {synq_jsonl}')
+        filtered_jsonl = data.Data.name_new_file(synq_jsonl, 'filtered')
+        if Path(filtered_jsonl).exists():
+            logger.info('Filtered data exists')
+            synq_jsonl = filtered_jsonl
+
         logger.info(f'Loading data from {synq_jsonl}')
         with open(synq_jsonl, mode='r', encoding='utf-8') as fin:
             self._data = [json.loads(line) for line in fin]

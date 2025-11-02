@@ -6,3 +6,5 @@ transformers
 tqdm
 pydantic
 accelerate
+pymilvus
+milvus-lite
