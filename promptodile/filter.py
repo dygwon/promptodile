@@ -236,6 +236,20 @@ class Filter:
 
         return qids_to_queries
 
+    def _qids_to_avg_logprobs(self) -> dict[str, float]:
+        """Create a simple mapping of query ids to average log probabilities"""
+        qids_to_logprobs: dict[str, float] = {}
+        for line in self._synq_flat:
+            qid = line['qid']
+            avg_logprob = line['avg_logprob']
+            if qid in qids_to_logprobs:
+                logger.error('Duplicate query id found: %s', qid)
+                logger.error('Keeping the first text encountered.')
+                continue
+            qids_to_logprobs[qid] = avg_logprob
+
+        return qids_to_logprobs
+
     def _save_consistent(self, k: int = constants.CONSISTENCY_TOP_K) -> None:
         logger.info('saving "consistent" queries')
         if self._data.corpus is None:
@@ -243,6 +257,7 @@ class Filter:
 
         docids_to_qids = self._get_keepers(k=k)
         qids_to_query = self._qids_to_queries()
+        qids_to_logprobs = self._qids_to_avg_logprobs()
 
         with open(self._filtered_jsonl, mode='w', encoding='utf-8') as fout:
             for docid, qids in docids_to_qids.items():
@@ -251,6 +266,7 @@ class Filter:
                     'title': self._data.corpus[docid].get('title', ''),
                     'body': self._data.corpus[docid]['body'],
                     'queries': [qids_to_query[qid] for qid in qids],
+                    'avg_logprobs': [qids_to_logprobs[qid] for qid in qids]
                 }
                 json.dump(output, fout)
                 fout.write('\n')
@@ -261,6 +277,10 @@ class Filter:
         self.index()
         self.retrieve()
         self._save_consistent()
+
+    def toppct_filter(self, toppct: float=constants.TOPPCT):
+        logger.info('selecting top %f\%')
+        pass
 
 
 if __name__ == '__main__':

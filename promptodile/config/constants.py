@@ -45,5 +45,7 @@ VECTOR_FIELD_NAME = 'vector'
 SEARCH_K = 10
 CONSISTENCY_TOP_K = 3
 
+TOPPCT = 0.1
+
 # -- Evaluate -------------------------------------------------------------
 K = 100
