@@ -7,6 +7,7 @@ from promptodile import data
 from pymilvus import MilvusClient
 from sentence_transformers import SentenceTransformer
 from promptodile.config import constants
+from tqdm import trange
 
 logger = logging.getLogger(__name__)
 
@@ -153,7 +154,7 @@ class Filter:
 
         batch_size = self._config.batch_size
         metric_type = self._config.collection_params.metric_type
-        for i in range(0, len(qids), batch_size):
+        for i in trange(0, len(qids), batch_size, desc='Retrieving'):
             qid_batch = qids[i : i + batch_size]
             source_docids_batch = source_docids[i : i + batch_size]
             squery_batch = squeries[i : i + batch_size]
@@ -240,7 +241,7 @@ class Filter:
         if self._data.corpus is None:
             raise AttributeError('Please provide a valid corpus file.')
 
-        docids_to_qids = self._get_keepers()
+        docids_to_qids = self._get_keepers(k=k)
         qids_to_query = self._qids_to_queries()
 
         with open(self._filtered_jsonl, mode='w', encoding='utf-8') as fout:
