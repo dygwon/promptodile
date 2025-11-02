@@ -63,6 +63,7 @@ class Generate:
         batch_ids: list[str],
         corpus_dict: data.Corpus,
         output_text: list[list[str]],
+        output_logprobs: list[list[float]],
     ) -> None:
         """Reformat and save the generated data.
         
@@ -70,12 +71,14 @@ class Generate:
         with the addition of a 'queries' field that holds an array of synthetic
         queries."""
         save_data: list[dict[str, str | list[str]]] = []
-        for cid, queries in zip(batch_ids, output_text):
+        for cid, queries, avg_logprobs in zip(
+            batch_ids, output_text, output_logprobs):
             data: dict[str, str | list[str]] = {
                 'docid': cid,
                 'title': corpus_dict[cid].get('title', ''),
                 'body': corpus_dict[cid]['body'],
                 'queries': queries,
+                'avg_logprobs': avg_logprobs
             }
             save_data.append(data)
         
@@ -209,13 +212,15 @@ class Generate:
             conversations = self._build_batch_conversations(batch_text, prompt)
         
             try:
-                output_text = self._qgen.chat(conversations, sampling_params)
+                output_text, output_logprobs = self._qgen.chat(
+                    conversations, sampling_params)
             except torch.OutOfMemoryError as e:
                 # We lose the entire batch if there are OOM errors.
                 print(f'Batch {i}: {e}', flush=True)
                 continue
             
-            self._save_batch(batch_ids, corpus_gen, output_text)
+            self._save_batch(
+                batch_ids, corpus_gen, output_text, output_logprobs)
 
 
 if __name__ == '__main__':

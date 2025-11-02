@@ -10,8 +10,11 @@ Delivered to the U.S. Government with Unlimited Rights, as defined in DFARS Part
 
 import logging
 import torch
+import statistics
+from copy import deepcopy
 from typing import TypeAlias
 from vllm import LLM, SamplingParams
+from vllm.outputs import RequestOutput
 from promptodile.config.qgen_config import QGenConfig
 
 logger = logging.getLogger(__name__)
@@ -65,6 +68,9 @@ class QGen:
         Uses the model's defaults where a parameter isn't specified on
         input."""
         sampling_params = self._llm.get_default_sampling_params()
+
+        # Always return logprobs unless overwritten by configuration
+        setattr(sampling_params, 'logprobs', 1)
         
         # Update defaults with inputs.
         for param, val in self._config.sampling_params.items():
@@ -76,12 +82,36 @@ class QGen:
         logger.info(sampling_params)
         
         return sampling_params
+
+    def _seq_avg_logprobs(self, outputs: RequestOutput) -> list[float]:
+        # each of n return sequences requested
+        seqs_logprobs: list[float] = []
+        for seq in outputs:
+            logprobs = output.logprobs
+            logprob_values: list[float] = []
+            for logprob in logprobs:
+                # extract the top log probability for each token in the sequence
+                top_logprob = list(logprob.values())[0].logprob
+                logprob_values.append(top_logprob)
+
+            # calculate and save the average log probability for the sequence
+            seqs_logprobs.append(statistics.means(logprob_values))
+
+        return seqs_logprobs
     
     def chat(
         self,
         conversations: list[list[Chat]],
         sampling_params: SamplingParams,
-    ) -> list[list[str]]:
+    ) -> tuple[list[list[str]], list[list[float]]]:
+        """Generate a response to the given prompts.
+
+        Returns a tuple: 
+            (list of n response texts, list of n average logprobs)
+
+            The outer lists correspond to the number of conversations and
+            the inner lists correspond to the number of return sequences.
+        """
         try:
             outputs = self._llm.chat( # type: ignore[attr-defined]
                 conversations, # type: ignore[attr-defined]
@@ -90,10 +120,22 @@ class QGen:
                 use_tqdm=False)
         except ValueError as e:
             logger.exception(e)
-            return [[''] * sampling_params.n] * len(conversations)
-        
+            error_text = [[''] * sampling_params.n] * len(conversations)
+            error_logprobs = [[0.0] * sampling_params.n] * len(conversations)
+            return deepcopy(error_text), deepcopy(error_logprobs)
+
         output_text: list[list[str]] = []
+        avg_logprobs: list[list[float]] = []
         for output in outputs:
-            output_text.append([n.text for n in output.outputs])
+            # extract text and logprobs from each response in the batch
+            inner_text = []
+            inner_logprobs = []
+
+            for n in output.outputs:
+                inner_text.append(n.text)
+                inner_logprobs.append(self._seq_avg_logprobs(n))
+
+            output_text.append(inner_text)
+            avg_logprobs.append(inner_logprobs)
                 
-        return output_text
+        return output_text, avg_logprobs
