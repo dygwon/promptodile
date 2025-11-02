@@ -164,7 +164,9 @@ class Data:
             for line in fin:
                 line_dict = json.loads(line)
                 queries: list[str] = line_dict['queries']
+                logprobs: list[float] = line_dict['logprobs']
                 total_queries += len(queries)
+                query_logprob_iter = zip(queries, )
                 for i, query in enumerate(queries):
                     query = query.strip()
                     # Skip empty strings or ones that we identify as skippable.

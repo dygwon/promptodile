@@ -257,8 +257,8 @@ class Filter:
 
     def consistency_filter(self):
         logger.info('conducting consistency filtering')
-        # self._create_collection()
-        # self.index()
+        self._create_collection()
+        self.index()
         self.retrieve()
         self._save_consistent()
 
