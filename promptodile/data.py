@@ -164,10 +164,11 @@ class Data:
             for line in fin:
                 line_dict = json.loads(line)
                 queries: list[str] = line_dict['queries']
-                logprobs: list[float] = line_dict['logprobs']
+                avg_logprobs: list[float] = line_dict['avg_logprobs']
                 total_queries += len(queries)
-                query_logprob_iter = zip(queries, )
-                for i, query in enumerate(queries):
+                query_logprob_iter = zip(queries, avg_logprobs)
+                for i, query_logprob in enumerate(query_logprob_iter):
+                    query, avg_logprob = query_logprob
                     query = query.strip()
                     # Skip empty strings or ones that we identify as skippable.
                     # If all queries for the document are skipped, the document
@@ -181,6 +182,7 @@ class Data:
                     new_dict['qid'] = docid + '_' + str(i)
                     new_dict['docid'] = docid
                     new_dict['query'] = query
+                    new_dict['avg_logprob'] = avg_logprob
                     flattened.append(new_dict)
 
         logger.info('Total queries in file: %d', total_queries)
