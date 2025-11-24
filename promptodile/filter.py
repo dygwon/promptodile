@@ -279,7 +279,7 @@ class Filter:
         self._save_consistent()
 
     def toppct_filter(self, toppct: float=constants.TOPPCT):
-        logger.info('selecting top %f\%')
+        logger.info('selecting top %f%%', toppct)
         pass
 
 
