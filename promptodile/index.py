@@ -53,24 +53,28 @@ class Index:
         queries jsonl file."""
         corpus_jsonl = self._sconfig.corpus_jsonl
         if corpus_jsonl is None or not corpus_jsonl.is_file():
-            raise AttributeError('Please provide a valid file %s', corpus_jsonl)
+            raise AttributeError('Please provide a valid file %s', str(corpus_jsonl))
 
-        pyserini_path = corpus_jsonl.parent / constants.CORPUS_PYSERINI
-        logging.info('saving pyserini corpus file to %s', pyserini_path)
+        pyserini_path = corpus_jsonl.parent / f'{corpus_jsonl.stem}_pyserini{corpus_jsonl.suffix}'
+        if pyserini_path.exists():
+            logging.info('reading existing pyserini corpus file %s', str(pyserini_path))
+            return pyserini_path
+        else:
+            logging.info('saving pyserini corpus file to %s', str(pyserini_path))
         
-        data: list[dict[str, str]] = []
-        with open(corpus_jsonl, mode='r', encoding='utf-8') as fin:
-            for line in fin:
-                jsonl = json.loads(line)
-                contents = jsonl['body']
-                if 'title' in jsonl:
-                    contents = jsonl['title'] + '\n\n' + contents
-                data.append({'id': jsonl['docid'], 'contents': contents})
-        
-        with open(pyserini_path, mode='w', encoding='utf-8') as fout:
-            for line in data:
-                json.dump(line, fout)
-                fout.write('\n')
+            data: list[dict[str, str]] = []
+            with open(corpus_jsonl, mode='r', encoding='utf-8') as fin:
+                for line in fin:
+                    jsonl = json.loads(line)
+                    contents = jsonl['body']
+                    if 'title' in jsonl:
+                        contents = jsonl['title'] + '\n\n' + contents
+                    data.append({'id': jsonl['docid'], 'contents': contents})
+            
+            with open(pyserini_path, mode='w', encoding='utf-8') as fout:
+                for line in data:
+                    json.dump(line, fout)
+                    fout.write('\n')
         
         return pyserini_path
     
