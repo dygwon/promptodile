@@ -147,7 +147,7 @@ class Index:
             encoder_args.append('--l2-norm')
         if sconfig.passage_prefix:
             encoder_args.append('--prefix')
-            encoder_args.append('sconfig.passage_prefix')
+            encoder_args.append(sconfig.passage_prefix)
         
         subp_cmd = [sys.executable, '-m', 'pyserini.encode']
         subp_cmd.extend(input_args)
