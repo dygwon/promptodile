@@ -78,7 +78,8 @@ class Index:
                     # Pyserini's built-in prefixing doesn't add a colon, whereas Promptodile
                     # does, so we build the document/passage manually.
                     if 'embeddinggemma-300m' in self._config.ft_model_dir:
-                        title = jsonl.get('title', 'none')
+                        title = jsonl.get('title', '')
+                        title = 'none' if len(title) == 0 else title
                         p_pre = self._sconfig.passage_prefix.format(title)
                         contents = f'{p_pre}: {contents}'
                     elif 'title' in jsonl:

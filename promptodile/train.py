@@ -90,7 +90,8 @@ class Train:
                 # The document prefix for google/embeddinggemma-300m takes an optional
                 # title.
                 if p_pre and 'embeddinggemma-300m' in self._config.model:
-                    title = line.get('title', 'none')
+                    title = line.get('title', '')
+                    title = 'none' if len(title) == 0 else title
                     p_pre = p_pre.format(title)
                 
                 doc = f'{p_pre}: {line["body"]}' if p_pre else line['body']
