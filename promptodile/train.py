@@ -86,6 +86,13 @@ class Train:
                 if not syn_q:  # We don't want empty queries.
                     continue
                 query = f'{q_pre}: {syn_q}' if q_pre else syn_q
+
+                # The document prefix for google/embeddinggemma-300m takes an optional
+                # title.
+                if p_pre and 'embeddinggemma-300m' in self._config.model:
+                    title = line.get('title', 'none')
+                    p_pre = p_pre.format(title)
+                
                 doc = f'{p_pre}: {line["body"]}' if p_pre else line['body']
                 queries.append(query)
                 documents.append(doc)

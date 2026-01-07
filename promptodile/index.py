@@ -54,8 +54,15 @@ class Index:
         corpus_jsonl = self._sconfig.corpus_jsonl
         if corpus_jsonl is None or not corpus_jsonl.is_file():
             raise AttributeError('Please provide a valid file %s', str(corpus_jsonl))
+        if self._sconfig.index_dir is None:
+            raise AttributeError('Please provide an index directory')
 
-        pyserini_path = corpus_jsonl.parent / f'{corpus_jsonl.stem}_pyserini{corpus_jsonl.suffix}'
+        # The pyserini-styled documents will vary since different embedding models
+        # use different query and document/passage prefixes
+        index_name = self._sconfig.index_dir.name
+        pyserini_path = (
+                corpus_jsonl.parent
+                / f'{corpus_jsonl.stem}_{index_name}_pyserini{corpus_jsonl.suffix}')
         if pyserini_path.exists():
             logging.info('reading existing pyserini corpus file %s', str(pyserini_path))
             return pyserini_path
@@ -67,8 +74,16 @@ class Index:
                 for line in fin:
                     jsonl = json.loads(line)
                     contents = jsonl['body']
-                    if 'title' in jsonl:
+
+                    # Pyserini's built-in prefixing doesn't add a colon, whereas Promptodile
+                    # does, so we build the document/passage manually.
+                    if 'embeddinggemma-300m' in self._config.ft_model_dir:
+                        title = jsonl.get('title', 'none')
+                        p_pre = self._sconfig.passage_prefix.format(title)
+                        contents = f'{p_pre}: {contents}'
+                    elif 'title' in jsonl:
                         contents = jsonl['title'] + '\n\n' + contents
+
                     data.append({'id': jsonl['docid'], 'contents': contents})
             
             with open(pyserini_path, mode='w', encoding='utf-8') as fout:
@@ -88,7 +103,6 @@ class Index:
             encoder_dir=str(self._sconfig.ft_model_dir),
             pooling=self._config.pooling.value,
             l2_norm=self._config.l2_norm,
-            prefix=self._sconfig.query_prefix,
             device=device)
         
         searcher = FaissSearcher(
@@ -108,7 +122,13 @@ class Index:
         with open(self._config.run_txt, mode='w', encoding='utf-8') as fout:
             for qid, qtext in tqdm(queries.items(), total=len(queries)):
                 if qid in test_qids: # No need to run for queries not in our test qids (will be faster....)
-                    query = qtext # query encoder handles prefix for us
+
+                    # Pyserini's built-in prefixing doesn't add a colon, whereas Promptodile
+                    # does, so we build the query manually.
+                    if self._sconfig.query_prefix:
+                        query = f'{self._sconfig.query_prefix}: {qtext}'
+                    else:
+                        query = qtext
                     hits = searcher.search(query, k=constants.K) # type: ignore
                     
                     rows: list[str] = []
@@ -143,11 +163,10 @@ class Index:
             '--device', device
         ]
         
+        if 'embeddinggemma-300m' in self._config.ft_model_dir:
+            encoder_args.remove('--fp16')
         if self._config.l2_norm:
             encoder_args.append('--l2-norm')
-        if sconfig.passage_prefix:
-            encoder_args.append('--prefix')
-            encoder_args.append(sconfig.passage_prefix)
         
         subp_cmd = [sys.executable, '-m', 'pyserini.encode']
         subp_cmd.extend(input_args)
