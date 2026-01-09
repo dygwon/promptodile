@@ -67,12 +67,20 @@ class Train:
     
     def _init_model(self) -> SentenceTransformer:
         logger.info('Initializing model from %s', self._config.model)
-        base_model = models.Transformer(self._config.model)
-        emb_dim = base_model.get_word_embedding_dimension()
-        pooling_model = models.Pooling(
-            emb_dim, pooling_mode=constants.POOLING_MODE)
-        model = SentenceTransformer(modules=[base_model, pooling_model])
-        return model
+		model_id = self._config.model
+
+		if 'embeddinggemma_300m' in model_id or 'nemotron' in model_id:
+			trust_remote_code = True if 'nemotron' in model_id else False
+			model = SentenceTransformer(
+				model_id, trust_remote_code=trust_remote_code)
+		else:
+			base_model = models.Transformer(
+				self._config.model, trust_remote_code=True)
+			emb_dim = base_model.get_word_embedding_dimension()
+			pooling_model = models.Pooling(
+				emb_dim, pooling_mode=constants.POOLING_MODE)
+			model = SentenceTransformer(modules=[base_model, pooling_model])
+		return model
     
     def _prepare_dataset(self) -> tuple[Dataset, Dataset]:
         logger.info('preparing dataset')
