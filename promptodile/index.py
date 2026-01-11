@@ -38,6 +38,8 @@ class Index:
         
         self._config = config
         self._sconfig = sconfig
+        if self._sconfig.ft_model_dir is None:
+            raise AttributeError('Please provide a finetuned model to index')
         if self._sconfig.index_dir and not self._sconfig.index_dir.exists():
             self._sconfig.index_dir.mkdir(parents=True, exist_ok=True)
         
@@ -77,7 +79,7 @@ class Index:
 
                     # Pyserini's built-in prefixing doesn't add a colon, whereas Promptodile
                     # does, so we build the document/passage manually.
-                    if 'embeddinggemma-300m' in self._config.ft_model_dir:
+                    if 'embeddinggemma-300m' in str(self._sconfig.ft_model_dir):
                         title = jsonl.get('title', '')
                         title = 'none' if len(title) == 0 else title
                         p_pre = self._sconfig.passage_prefix.format(title)
@@ -164,7 +166,7 @@ class Index:
             '--device', device
         ]
         
-        if 'embeddinggemma-300m' in self._config.ft_model_dir:
+        if 'embeddinggemma-300m' in str(self._sconfig.ft_model_dir):
             encoder_args.remove('--fp16')
         if self._config.l2_norm:
             encoder_args.append('--l2-norm')
